@@ -1,0 +1,5 @@
+(library
+ (name core)
+ (public_name zkocaml.core)
+ (libraries zarith core_kernel)
+ (preprocess (pps ppx_jane ppx_deriving.show)))
