@@ -3,3 +3,8 @@
  (public_name zkocaml.circuits)
  (libraries zarith core_kernel zkocaml.core zkocaml.field)
  (preprocess (pps ppx_jane ppx_deriving.show)))
+
+(executable
+ (name tests)
+ (modules tests)
+ (libraries circuits))

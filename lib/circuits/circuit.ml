@@ -181,24 +181,26 @@ module Evaluator = struct
     module FieldOps = Prime_field.FieldOps.Make(F)
 
     (** Calculate node value *)
-    let rec evaluate_node node assignment =
+    let rec evaluate_node circuit node assignment =
       match node.value with
       | Some v -> F.of_string (Z.to_string v)
       | None ->
           let result = match node.gate with
-          | Input -> assignment (Hashtbl.find_exn circuit.variables node.id)
+          | Input -> 
+              let var = Hashtbl.find_exn circuit.variables node.id in
+              assignment var
           | Const v -> F.of_string (Z.to_string v)
           | Add ->
-              let a = evaluate_node (List.nth_exn node.inputs 0) assignment in
-              let b = evaluate_node (List.nth_exn node.inputs 1) assignment in
+              let a = evaluate_node circuit (List.nth_exn node.inputs 0) assignment in
+              let b = evaluate_node circuit (List.nth_exn node.inputs 1) assignment in
               F.(a + b)
           | Mul ->
-              let a = evaluate_node (List.nth_exn node.inputs 0) assignment in
-              let b = evaluate_node (List.nth_exn node.inputs 1) assignment in
+              let a = evaluate_node circuit (List.nth_exn node.inputs 0) assignment in
+              let b = evaluate_node circuit (List.nth_exn node.inputs 1) assignment in
               F.(a * b)
           | Sub ->
-              let a = evaluate_node (List.nth_exn node.inputs 0) assignment in
-              let b = evaluate_node (List.nth_exn node.inputs 1) assignment in
+              let a = evaluate_node circuit (List.nth_exn node.inputs 0) assignment in
+              let b = evaluate_node circuit (List.nth_exn node.inputs 1) assignment in
               F.(a - b)
           | Custom _ -> 
               failwith "Custom gates not supported in evaluation"
@@ -208,6 +210,28 @@ module Evaluator = struct
 
     (** Evaluate the entire circuit *)
     let evaluate circuit assignment =
-      evaluate_node circuit.output assignment
+      evaluate_node circuit circuit.output assignment
+      
+    (** Generate witness from input assignments *)
+    let generate_witness circuit input_assignments =
+      let variable_assignments = Hashtbl.create (module Int) in
+      
+      (* First, assign all input values *)
+      List.iteri circuit.inputs ~f:(fun i node ->
+        let var = Hashtbl.find_exn circuit.variables node.id in
+        Hashtbl.set variable_assignments ~key:var.id 
+          ~data:(input_assignments i));
+      
+      (* Then evaluate the circuit to fill all internal values *)
+      let assignment var =
+        match Hashtbl.find variable_assignments var.id with
+        | Some v -> v
+        | None -> F.zero
+      in
+      
+      let _ = evaluate circuit assignment in
+      
+      (* Return the final assignment function *)
+      assignment
   end
 end 

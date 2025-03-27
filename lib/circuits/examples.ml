@@ -73,16 +73,40 @@ let evaluate_simple_circuit a_val b_val c_val =
   let circuit = create_simple_circuit () in
   let constraint_system = Builder.to_constraint_system circuit in
   
-  (* Create a test assignment *)
-  let assignment var =
-    match var.name with
-    | "input_0" -> BN254_Fr.of_string (Z.to_string a_val)
-    | "input_1" -> BN254_Fr.of_string (Z.to_string b_val)
-    | "input_2" -> BN254_Fr.of_string (Z.to_string c_val)
+  let a_field = BN254_Fr.of_string (Z.to_string a_val) in
+  let b_field = BN254_Fr.of_string (Z.to_string b_val) in
+  let c_field = BN254_Fr.of_string (Z.to_string c_val) in
+  
+  (* Create input assignments *)
+  let input_assignments i =
+    match i with
+    | 0 -> a_field
+    | 1 -> b_field
+    | 2 -> c_field
     | _ -> BN254_Fr.zero
   in
   
-  let result = BN254Eval.evaluate circuit assignment in
-  let verified = BN254Eval.FieldOps.verify_witness constraint_system assignment in
+  (* Generate full witness *)
+  let assignment = BN254Eval.generate_witness circuit input_assignments in
   
-  BN254_Fr.to_string result, verified 
+  (* Evaluate circuit and verify witness *)
+  let result = BN254Eval.evaluate circuit assignment in
+  let verified = FieldOps.verify_witness constraint_system assignment in
+  
+  BN254_Fr.to_string result, verified
+
+(** Run some example tests *)
+let run_tests () =
+  (* Test 1: (2 + 3) * 4 = 20 *)
+  let result1, verified1 = evaluate_simple_circuit (Z.of_int 2) (Z.of_int 3) (Z.of_int 4) in
+  Printf.printf "Test 1: (2 + 3) * 4 = %s, Verified: %b\n" result1 verified1;
+  
+  (* Test 2: (5 + 7) * 2 = 24 *)
+  let result2, verified2 = evaluate_simple_circuit (Z.of_int 5) (Z.of_int 7) (Z.of_int 2) in
+  Printf.printf "Test 2: (5 + 7) * 2 = %s, Verified: %b\n" result2 verified2;
+  
+  (* Test Merkle verification - this is simplified for demonstration *)
+  let depth = 2 in
+  let merkle_circuit = create_merkle_verification_circuit ~depth in
+  Printf.printf "Created Merkle verification circuit with depth %d\n" depth;
+  Printf.printf "Number of constraints: %d\n" (List.length merkle_circuit.constraints) 
