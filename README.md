@@ -1,6 +1,6 @@
 # ZKOCaml
 
-A novel OCaml library for zero-knowledge proofs with optimized off-chain computation.
+A framework OCaml library for zero-knowledge proofs with optimized off-chain computation.
 
 ## Features
 
